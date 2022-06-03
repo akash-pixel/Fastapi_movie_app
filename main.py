@@ -53,13 +53,14 @@ def getAll(sort:Union[bool,None]=None, by: Union[str,None]=None ):
 
 @app.post("/")
 async def addMovie(movie:MovieSchema):
-  # if Validate(movie):
-  #   return { "status": "failed", "msg": "Incomplete Information!"}
+  if Validate(movie) == False :
+    return { "status": "failed", "msg": "Incomplete Information!"}
 
   stmt1 = insert(Movies).values(
     title=movie.title, release_date=movie.release_date,
     price=movie.price, rating = movie.rating  )
   stmt2 = select(Movies).where(Movies.title==movie.title, Movies.release_date==movie.release_date) 
+  
   with engine.connect() as conn:
     conn.execute(stmt1)
     result = conn.execute(stmt2)
@@ -69,8 +70,6 @@ async def addMovie(movie:MovieSchema):
       conn.execute( insert(movie_genres).values( movie_id=id, genre_id=genre_id ) )
     conn.commit()
   return { "status": "success", "data":movie}
-  # return movie
-
 
 @app.get("/details/{movie_id}")
 def getMovieDetails(movie_id: int):
@@ -126,7 +125,12 @@ def searchMovie(q: Union[str, None] = None):
 
 
 ### Validation function
-# def Validate( movie ):
-#   print(movie)
-#   return True
+def Validate( movie ):
+  if( len(movie.title)>60 or len(movie.title)<3 ):
+    return False
+  
+  if(len(movie.genre) == 0 ):
+    return False
+
+  return True
 
