@@ -1,5 +1,6 @@
 from typing import Union, Set, List
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import insert, select, update, delete, text
 
@@ -10,14 +11,20 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-###  Schemas
+origins = [
+  "http://localhost:3000"
+]
 
-class MoviesSchema(BaseModel):
-  id : int
-  title:str 
-  rating:float
-  class Config:
-    orm_mode= True
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins = origins,
+  allow_credentials = True,
+  allow_methods = ["*"],
+  allow_headers = ["*"],
+)
+
+
+###  Schemas
 
 class MovieSchema(BaseModel):
   title:str
@@ -34,7 +41,7 @@ class MovieSchema(BaseModel):
 @app.get("/")
 def getAll(sort:Union[bool,None]=None, by: Union[str,None]=None ):
   
-  if(sort != None ):
+  if(sort == True ):
     if( by != None ):
       column = text(f"movies.{by}")
       stmt = select(Movies.id, Movies.title, Movies.rating).order_by(column)
@@ -83,7 +90,7 @@ def getMovieDetails(movie_id: int):
   query = text(query)
   result = conn.execute(query)
   rows = [ g for g in result]
-  if len(rows)>1: 
+  if len(rows)>0: 
     data.append(rows[0])
   conn.close()
   return {"status":"success", "data": data}
@@ -122,6 +129,10 @@ def searchMovie(q: Union[str, None] = None):
   conn = engine.connect()
   data = [ row for row in conn.execute(stmt)]
   return {"status":"success","length":len(data), "data":data}
+
+@app.get("*", status_code=404)
+def notFound():
+  return {"status":"success","msg": "Page Not Found"}
 
 
 ### Validation function
