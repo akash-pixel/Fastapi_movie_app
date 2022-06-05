@@ -1,7 +1,7 @@
-from typing import Union, Set, List
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Union, Set, List
 from sqlalchemy import insert , select, update, delete, text, desc
 
 from db import Base, engine
@@ -35,7 +35,7 @@ class MovieSchema(BaseModel):
 
 #### Routes
 
-@app.get("/")
+@app.get("/", status_code=200)
 def getAll(ASC:Union[bool,None]=None, sort_by: Union[str,None]=None ):
   
   if(ASC == True ):
@@ -65,11 +65,10 @@ def getAll(ASC:Union[bool,None]=None, sort_by: Union[str,None]=None ):
   return {"status": "success", "length":len(data), "data":data}
 
 # POST
-@app.post("/")
+@app.post("/", status_code =201)
 async def addMovie(movie:MovieSchema):
   if Validate(movie) == False :
-    return { "status": "failed", "msg": "Incomplete Information!"}
-
+    raise HTTPException(status_code=400, detail="Incomplete Information!")
   stmt1 = insert(Movies).values(
     title=movie.title, release_date=movie.release_date,
     price=movie.price, rating = movie.rating  )
@@ -85,14 +84,14 @@ async def addMovie(movie:MovieSchema):
     conn.commit()
   return { "status": "success", "data":movie}
 
-@app.get("/details/{movie_id}")
+# Movie DETAILS
+@app.get("/details/{movie_id}", status_code=200)
 def getMovieDetails(movie_id: int):
-  # getting the movie
   stmt = select(Movies).where(Movies.id == movie_id)
   conn = engine.connect()
   data = [row for row in conn.execute(stmt)]
   if len(data) == 0:
-    return {"status":"failed", "msg":"Invalid id"}
+    raise HTTPException(status_code=404, detail="Item not found")
   data = dict(data[0])
 
   ## Getting movie genre
@@ -105,8 +104,8 @@ def getMovieDetails(movie_id: int):
   return {"status":"success", "data": data}
 
 ####  PUT REQUEST
-@app.put("/update/{movie_id}")
-async def addMovie(movie:MovieSchema, movie_id:int):
+@app.put("/update/{movie_id}", status_code =201)
+async def updateMovie(movie:MovieSchema, movie_id:int):
   stmt1 = update(Movies).where(Movies.id == movie_id ).values(
     title=movie.title, release_date=movie.release_date,
     price=movie.price, rating = movie.rating)
@@ -122,24 +121,23 @@ async def addMovie(movie:MovieSchema, movie_id:int):
   return { "status": "success", "data": movie.dict()}
 
 # DELETE
-@app.delete("/delete/{movie_id}")
+@app.delete("/delete/{movie_id}", status_code=204)
 def deleteMovie(movie_id:int):
   stmt = delete(Movies).where(Movies.id == movie_id)
-  stmt2 = text(f"DELETE FROM `movie_genres` WHERE movie_id = {movie_id}")
+  stmt2 = delete(movie_genres).where(movie_genres.c.id == movie_id)
   try:
     with engine.connect() as conn:
       conn.execute(stmt2)
       conn.execute(stmt)
       conn.commit()
   except:
-    print("An error occured")
-    return {"status":"failed", "msg":"Error"}
-
+    raise HTTPException(status_code=500, detail="Server Error")
+    
   return {"status":"success", "msg":"Deleted Successfully!"}
 
 
 ###  Search 
-@app.get("/search")
+@app.get("/search", status_code=200)
 def searchMovie(q: Union[str, None] = None, ASC:Union[bool,None]=None ):
 
   if(ASC == True):
@@ -153,9 +151,9 @@ def searchMovie(q: Union[str, None] = None, ASC:Union[bool,None]=None ):
   data = [ row for row in conn.execute(stmt)]
   return {"status":"success","length":len(data), "data":data}
 
-@app.get("*", status_code=404)
+@app.get("*", status_code=400)
 def notFound():
-  return {"status":"success","msg": "Page Not Found"}
+  return HTTPException(status_code=404, detail="Page Not Found")
 
 
 ### Validation function
