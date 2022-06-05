@@ -1,4 +1,7 @@
 /__pycache__
 /venv
-
+/alembic
 example.http
+
+__pycache__
+alembic.ini
