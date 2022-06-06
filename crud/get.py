@@ -22,10 +22,8 @@ def getAllMovies(ASC=None, sort_by=None):
       stmt = select(Movies.id, Movies.title, Movies.rating).order_by(desc(column))
     else:
       stmt = select(Movies.id, Movies.title, Movies.rating).order_by(desc(Movies.title))
-    print(stmt)
   else:
     stmt = select(Movies.id, Movies.title, Movies.rating)
-    print(stmt)
 
   data = []
   conn = engine.connect()

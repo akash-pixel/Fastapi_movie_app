@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import insert , select, text, desc
+from sqlalchemy import insert , select, text, desc, update, delete
 
 from db import engine
 from models import Movies, movie_genres
