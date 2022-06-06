@@ -1,7 +1,8 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-engine = create_engine( "mysql+pymysql://root:root@127.0.0.1:3306/MOVIE", future=True )
+from db_credentials import server, username, password, database
+engine = create_engine( f"mysql+pymysql://{username}:{password}@{server}:3306/{database}", future=True )
 
 Base = declarative_base()
 
